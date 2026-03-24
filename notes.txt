@@ -1,0 +1,9 @@
+1. User created a POOL
+    i. User sends token A
+    i. User sends token B
+
+In token transfers
+    Account<'info, AccpuntTpe> is not used
+    WHY?
+        - Deserializes into specif accountype
+        - InterfaceAccount accepts both TokenProgram and Token2020Program

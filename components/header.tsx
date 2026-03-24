@@ -1,0 +1,42 @@
+'use client';
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Wallet, Settings } from 'lucide-react';
+
+export function Header() {
+  return (
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
+            Ψ
+          </div>
+          <span className="text-xl font-bold text-foreground">Vertex</span>
+        </Link>
+        
+        <nav className="hidden gap-8 md:flex">
+          <Link href="/swap" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Swap
+          </Link>
+          <Link href="/pools" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Pools
+          </Link>
+          <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Dashboard
+          </Link>
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon">
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button className="gap-2">
+            <Wallet className="h-4 w-4" />
+            <span className="hidden sm:inline">Connect Wallet</span>
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
