@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Zap } from "lucide-react";
-
+import {} from "@solana/spl-token";
+import useProgram from "@/hooks/useProgram";
 export function CreatePool() {
   const [mintA, setMintA] = useState("");
   const [mintB, setMintB] = useState("");
@@ -15,6 +16,8 @@ export function CreatePool() {
 
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const program = useProgram();
 
   const validateTokens = async () => {
     if (!mintA || !mintB) return;

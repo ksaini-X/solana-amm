@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Wallet, Settings } from 'lucide-react';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Wallet, Settings } from "lucide-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 export function Header() {
   return (
@@ -14,28 +15,29 @@ export function Header() {
           </div>
           <span className="text-xl font-bold text-foreground">Vertex</span>
         </Link>
-        
+
         <nav className="hidden gap-8 md:flex">
-          <Link href="/swap" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            href="/swap"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
             Swap
           </Link>
-          <Link href="/pools" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            href="/pools"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
             Pools
           </Link>
-          <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            href="/dashboard"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
             Dashboard
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
-          <Button className="gap-2">
-            <Wallet className="h-4 w-4" />
-            <span className="hidden sm:inline">Connect Wallet</span>
-          </Button>
-        </div>
+        <WalletMultiButton />
       </div>
     </header>
   );

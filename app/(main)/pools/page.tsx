@@ -1,12 +1,11 @@
 "use client";
 
-import { Header } from "@/components/header";
 import { PoolsTable } from "@/components/pools-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Info, Cross, CrosshairIcon, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useState } from "react";
-import { Close } from "@radix-ui/react-toast";
 import { CreatePool } from "@/components/create-pool";
+import useProgram from "@/hooks/useProgram";
 
 export default function PoolsPage() {
   const [createPool, setCreatePool] = useState(false);

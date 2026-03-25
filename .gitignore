@@ -1,3 +1,33 @@
-node_modules
-.next
-amm/target
+# --- Next.js / Node.js ---
+node_modules/
+.next/
+out/
+build/
+dist/
+.env*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vercel
+
+# --- Anchor / Solana (Inside 'amm/' folder) ---
+amm/target/
+amm/.anchor/
+amm/test-ledger/
+
+# --- Rust / Cargo (General) ---
+**/*.rs.bk
+Cargo.lock
+
+# --- TypeScript / IDE ---
+.DS_Store
+*.local
+.vscode/
+.idea/
+
+# --- Optional: Program Credentials ---
+# Only ignore these if you want to keep your local 
+# development keys out of the repository.
+amm/deploy/*.json
+amm/keys/*.json
