@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.testnet]
-amm = "6GYZcGdT68SXbZTM67p3YkPSzb5JJ6h6shUQAGaaGuFe"
+amm = "4zkf56GMsxcj5QVozMvXv59WBNqgGRnfMPbgfHssY3HY"
 
 [registry]
 url = "https://api.apr.dev"

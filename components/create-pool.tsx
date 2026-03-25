@@ -15,7 +15,13 @@ type TokenInfo = {
   amount: number;
 };
 
-export function CreatePool() {
+export function CreatePool({
+  loading,
+  setLoading,
+}: {
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
+}) {
   const [mintA, setMintA] = useState("");
   const [mintB, setMintB] = useState("");
   const [amountA, setAmountA] = useState("");
@@ -80,37 +86,43 @@ export function CreatePool() {
     console.log("lpMint" + lpMint.publicKey.toString());
 
     // user LP ATA
-    const userLpTokenAccount = await getAssociatedTokenAddress(
-      lpMint.publicKey,
-      wallet.publicKey!,
-    );
-    console.log("userLpTokenAccount" + userLpTokenAccount.toString());
+    try {
+      setLoading(true);
+      const userLpTokenAccount = await getAssociatedTokenAddress(
+        lpMint.publicKey,
+        wallet.publicKey!,
+      );
+      console.log("userLpTokenAccount" + userLpTokenAccount.toString());
 
-    let tx = await program.methods
-      .initPool(
-        new anchor.BN(Number(amountA) * 1_000_000),
-        new anchor.BN(Number(amountB) * 1_000_000),
-      )
-      .accounts({
-        user: wallet.publicKey!,
+      let tx = await program.methods
+        .initPool(
+          new anchor.BN(Number(amountA) * 1_000_000),
+          new anchor.BN(Number(amountB) * 1_000_000),
+        )
+        .accounts({
+          user: wallet.publicKey!,
 
-        tokenAMint: new PublicKey(mintA),
-        tokenBMint: new PublicKey(mintB),
+          tokenAMint: new PublicKey(mintA),
+          tokenBMint: new PublicKey(mintB),
 
-        userTokenAAccount: new PublicKey(tokenAAccount!.tokenAccountAddress),
-        userTokenBAccount: new PublicKey(tokenBAccount!.tokenAccountAddress),
+          userTokenAAccount: new PublicKey(tokenAAccount!.tokenAccountAddress),
+          userTokenBAccount: new PublicKey(tokenBAccount!.tokenAccountAddress),
 
-        tokenAVault: tokenAVault.publicKey,
-        tokenBVault: tokenBVault.publicKey,
+          tokenAVault: tokenAVault.publicKey,
+          tokenBVault: tokenBVault.publicKey,
 
-        lpMint: lpMint.publicKey,
+          lpMint: lpMint.publicKey,
 
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .signers([tokenAVault, tokenBVault, lpMint])
-      .rpc();
-    await connection.confirmTransaction(tx, "confirmed");
-    console.log(tx);
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([tokenAVault, tokenBVault, lpMint])
+        .rpc();
+      await connection.confirmTransaction(tx, "confirmed");
+      console.log(tx);
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
   };
   console.log(tokens);
   const formatMint = (mint: string) =>

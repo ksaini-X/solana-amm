@@ -2,144 +2,170 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, ArrowRightLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import useProgram from "@/hooks/useProgram";
 
-interface PoolData {
-  id: string;
-  tokens: string;
-  tvl: string;
-  apy: string;
-  volume24h: string;
-  fee: string;
+interface RawPool {
+  publicKey: string;
+  account: {
+    tokenAReserves: string;
+    tokenBReserves: string;
+    tokenAMint: string;
+    tokenBMint: string;
+    lpTokenMint: string;
+    lpTokenSupply: string;
+  };
 }
 
-const pools: PoolData[] = [
-  {
-    id: "eth-usdc",
-    tokens: "ETH/USDC",
-    tvl: "$2.4B",
-    apy: "24.5%",
-    volume24h: "$840M",
-    fee: "0.30%",
-  },
-  {
-    id: "eth-usdt",
-    tokens: "ETH/USDT",
-    tvl: "$1.8B",
-    apy: "18.2%",
-    volume24h: "$620M",
-    fee: "0.30%",
-  },
-  {
-    id: "usdc-usdt",
-    tokens: "USDC/USDT",
-    tvl: "$950M",
-    apy: "8.5%",
-    volume24h: "$450M",
-    fee: "0.01%",
-  },
-  {
-    id: "dai-usdc",
-    tokens: "DAI/USDC",
-    tvl: "750M",
-    apy: "12.3%",
-    volume24h: "$320M",
-    fee: "0.05%",
-  },
-];
+const hexToNum = (hex: string) => parseInt(hex, 16);
+const shortAddr = (addr: string) => `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+const formatReserve = (n: number) => {
+  if (n / 1_000_000 >= 1_000_000_000)
+    return `${(n / 1_000_000_000).toFixed(2)}B`;
+  if (n / 1_000_000 >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n / 1_000_000 >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
+  return n.toString();
+};
 
-export function PoolsTable() {
+function PoolCard({ pool }: { pool: RawPool }) {
+  const reserveA = hexToNum(pool.account.tokenAReserves);
+  const reserveB = hexToNum(pool.account.tokenBReserves);
+  const lpSupply = hexToNum(pool.account.lpTokenSupply);
+  const spotPrice = (reserveB / reserveA).toFixed(4);
+
   return (
-    <Card className="border-border bg-card">
-      <CardHeader className="flex flex-row items-center justify-between pb-4">
+    <Card className="border-border bg-card hover:bg-secondary/30 transition-colors">
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex -space-x-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold ring-2 ring-card">
+                A
+              </div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold ring-2 ring-card">
+                B
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground mb-0.5">
+              Spot Price
+            </p>
+            <span className="rounded-md bg-primary/10 px-2 py-1 font-mono text-xs text-primary font-semibold">
+              {spotPrice}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg bg-secondary/50 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground mb-0.5">
+              Reserve A
+            </p>
+            <p className="font-mono text-sm font-semibold text-foreground">
+              {formatReserve(reserveA)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-secondary/50 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground mb-0.5">
+              Reserve B
+            </p>
+            <p className="font-mono text-sm font-semibold text-foreground">
+              {formatReserve(reserveB)}
+            </p>
+          </div>
+        </div>
+
+        {/* LP Supply + action */}
+        <div className="flex items-center justify-between pt-1">
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-0.5">
+              LP Supply
+            </p>
+            <p className="font-mono text-xs text-muted-foreground">
+              {formatReserve(lpSupply)}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" className="border-border gap-1.5">
+            <Plus className="h-3 w-3" />
+            Deposit
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function PoolsTable({
+  loading,
+  setLoading,
+}: {
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+}) {
+  const program = useProgram();
+  const [pools, setPools] = useState<RawPool[]>([]);
+
+  useEffect(() => {
+    async function fetchPools() {
+      if (!program) return;
+      try {
+        const allPools = await program.account.pool.all();
+        const normalized = allPools.map((p: any) => ({
+          publicKey: p.publicKey.toString(),
+          account: {
+            tokenAReserves: p.account.tokenAReserves.toString(16),
+            tokenBReserves: p.account.tokenBReserves.toString(16),
+            tokenAVault: p.account.tokenAVault.toString(),
+            tokenBVault: p.account.tokenBVault.toString(),
+            tokenAMint: p.account.tokenAMint.toString(),
+            tokenBMint: p.account.tokenBMint.toString(),
+            lpTokenMint: p.account.lpTokenMint.toString(),
+            lpTokenSupply: p.account.lpTokenSupply.toString(16),
+          },
+        }));
+        setPools(normalized);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchPools();
+  }, [program]);
+
+  return (
+    <div className="space-y-4">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
         <div>
-          <CardTitle>Liquidity Pools</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Earn fees by providing liquidity
+          <h2 className="text-lg font-semibold text-foreground">
+            Liquidity Pools
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Provide liquidity and earn fees
           </p>
         </div>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Add Liquidity</span>
         </Button>
-      </CardHeader>
+      </div>
 
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">
-                  Pool
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-muted-foreground">
-                  TVL
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-muted-foreground">
-                  24h Volume
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-muted-foreground">
-                  APY
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-muted-foreground">
-                  Fee
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-muted-foreground">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {pools.map((pool) => (
-                <tr
-                  key={pool.id}
-                  className="border-b border-border last:border-b-0 transition-colors hover:bg-secondary/50"
-                >
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold">
-                          ◆
-                        </div>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs">
-                          $
-                        </div>
-                      </div>
-                      <span className="font-medium text-foreground">
-                        {pool.tokens}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-right font-medium text-foreground">
-                    {pool.tvl}
-                  </td>
-                  <td className="px-4 py-4 text-right text-foreground">
-                    {pool.volume24h}
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <Badge className="bg-primary/20 text-primary">
-                      {pool.apy}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-4 text-right text-muted-foreground text-sm">
-                    {pool.fee}
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-border"
-                    >
-                      Deposit
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Pool cards grid */}
+      {pools.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {pools.map((pool) => (
+            <PoolCard key={pool.publicKey} pool={pool} />
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      ) : (
+        !loading && (
+          <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border">
+            <p className="text-sm text-muted-foreground">No pools found.</p>
+          </div>
+        )
+      )}
+    </div>
   );
 }

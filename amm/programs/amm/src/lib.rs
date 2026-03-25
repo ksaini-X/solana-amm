@@ -1,21 +1,19 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    token_interface::{Mint, TokenAccount, TokenInterface, }, associated_token::{AssociatedToken, }, 
+    token_interface::{Mint, TokenAccount, TokenInterface, }, associated_token::{AssociatedToken, },
+    token::{self, Transfer}, 
 };
 
-declare_id!("6GYZcGdT68SXbZTM67p3YkPSzb5JJ6h6shUQAGaaGuFe");
+declare_id!("4zkf56GMsxcj5QVozMvXv59WBNqgGRnfMPbgfHssY3HY");
 
 #[program]
 pub mod amm {
 
-
-    use anchor_spl::token::{self, Transfer};
-
     use super::*;
 
     pub fn init_pool(ctx:Context<InitPool>, token_a_amount:u64, token_b_amount:u64)->Result<()>{
-
-        token::transfer(
+        ctx.accounts.pool.version = 1;
+        token::transfer(    
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(), 
             Transfer{
@@ -202,6 +200,7 @@ pub mod amm {
 #[account]
 #[derive(InitSpace)]
 pub struct Pool {
+    pub version:u8,
     pub token_a_reserves: u64,
     pub token_b_reserves: u64,
     pub token_a_vault: Pubkey,

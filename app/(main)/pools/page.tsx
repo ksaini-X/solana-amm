@@ -7,28 +7,12 @@ import { useEffect, useState } from "react";
 import { CreatePool } from "@/components/create-pool";
 import useProgram from "@/hooks/useProgram";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+import { loadBindings } from "next/dist/build/swc";
 
 export default function PoolsPage() {
-  const program = useProgram();
-  const [pools, setPools] = useState([]);
-  const wallet = useWallet();
-
-  useEffect(() => {
-    async function getPools() {
-      if (!program) return;
-      try {
-        const allPools = await program.account.pool.all();
-        console.log("calling");
-        setPools(allPools);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    getPools();
-  }, [program]);
-
-  console.log(pools);
   const [createPool, setCreatePool] = useState(false);
+  const [loading, setLoading] = useState(false);
   return (
     <main className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
       <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6">
@@ -51,7 +35,11 @@ export default function PoolsPage() {
           )}
         </Button>
       </div>
-      {createPool ? <CreatePool /> : <PoolsTable />}
+      {createPool ? (
+        <CreatePool loading={loading} setLoading={setLoading} />
+      ) : (
+        <PoolsTable loading={loading} setLoading={setLoading} />
+      )}
     </main>
   );
 }
