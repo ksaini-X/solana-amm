@@ -15,8 +15,7 @@ const MainLayout = ({
   return (
     <ConnectionProvider
       endpoint={
-        process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-        "https://api.devnet.solana.com"
+        process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "http://127.0.0.1:8899"
       }
     >
       <WalletProvider wallets={[]} autoConnect>

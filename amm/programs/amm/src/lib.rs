@@ -1,9 +1,9 @@
-use anchor_lang::prelude::{borsh::{BorshDeserialize, BorshSerialize}, *};
+use anchor_lang::prelude::*;
 use anchor_spl::{
-    token_interface::{Mint, TokenAccount, TokenInterface}, 
+    token_interface::{Mint, TokenAccount, TokenInterface, }, associated_token::{AssociatedToken, }, 
 };
 
-declare_id!("8spfEhrU1zhtirgszCB381fBvXqgsYnqpCG1RKEYwQM5");
+declare_id!("6GYZcGdT68SXbZTM67p3YkPSzb5JJ6h6shUQAGaaGuFe");
 
 #[program]
 pub mod amm {
@@ -42,7 +42,7 @@ pub mod amm {
             token::MintTo{
                 authority:ctx.accounts.pool.to_account_info(), 
                 mint:ctx.accounts.lp_mint.to_account_info(), 
-                to:ctx.accounts.user.to_account_info(), 
+                to:ctx.accounts.user_lp_token_account.to_account_info(), 
         }, 
             &[&[
                 b"pool", 
@@ -55,6 +55,9 @@ pub mod amm {
         ctx.accounts.pool.token_a_reserves = token_a_amount;
         ctx.accounts.pool.token_b_reserves = token_b_amount;
         ctx.accounts.pool.lp_token_supply = lp_amount;
+        ctx.accounts.pool.token_a_mint = ctx.accounts.token_a_mint.key();
+        ctx.accounts.pool.token_b_mint = ctx.accounts.token_b_mint.key();
+        ctx.accounts.pool.lp_token_mint = ctx.accounts.lp_mint.key();
 
         Ok(())
     }
@@ -187,6 +190,7 @@ pub mod amm {
 
                 pool.token_a_reserves = pool.token_a_reserves.checked_sub(out_amount).unwrap();
                 pool.token_b_reserves = pool.token_b_reserves.checked_add(in_amount).unwrap();
+               
             },
             
         }
@@ -203,8 +207,12 @@ pub struct Pool {
     pub token_a_vault: Pubkey,
     pub token_b_vault: Pubkey,
 
+    pub token_a_mint:Pubkey,
+    pub token_b_mint:Pubkey,
+
     pub lp_token_mint: Pubkey,
     pub lp_token_supply: u64,
+
     pub bump: u8,
 }
 
@@ -234,7 +242,8 @@ pub struct InitPool<'info> {
         init, 
         payer = user, 
         token::mint = token_a_mint, 
-        token::authority = pool
+        token::authority = pool, 
+        token::token_program = token_program  
     )]
     pub token_a_vault:InterfaceAccount<'info, TokenAccount >, 
 
@@ -242,7 +251,9 @@ pub struct InitPool<'info> {
         init, 
         payer = user, 
         token::mint = token_b_mint, 
-        token::authority = pool
+        token::authority = pool,
+        token::token_program = token_program, 
+
     )]
     pub token_b_vault:InterfaceAccount<'info, TokenAccount >,
 
@@ -255,15 +266,17 @@ pub struct InitPool<'info> {
     pub lp_mint: InterfaceAccount<'info, Mint>, 
 
     #[account(
-        init_if_needed, 
+        init, 
         payer  = user, 
-        token::mint = lp_mint, 
-        token::authority = user
+        associated_token::mint = lp_mint, 
+        associated_token::authority = user, 
+        token::token_program = associated_token_program
     )]
     pub user_lp_token_account: InterfaceAccount<'info, TokenAccount>, 
 
     pub system_program:Program<'info, System>,
-pub token_program: Interface<'info, TokenInterface>,    
+pub token_program: Interface<'info, TokenInterface>, 
+pub associated_token_program : Program<'info, AssociatedToken>,
 pub rent : Sysvar<'info, Rent>
 
 }
@@ -325,7 +338,7 @@ pub enum CustomError{
     #[msg("Invalid Ration")]
     InvalidRatio
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Copy)]
+#[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy)]
 pub enum SwapSide{
     AtoB, 
     BtoA

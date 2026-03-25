@@ -1,43 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Zap } from "lucide-react";
-import {} from "@solana/spl-token";
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import useProgram from "@/hooks/useProgram";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
+import * as anchor from "@coral-xyz/anchor";
+type TokenInfo = {
+  tokenAccountAddress: string;
+  tokenMintAddress: string;
+  amount: number;
+};
+
 export function CreatePool() {
   const [mintA, setMintA] = useState("");
   const [mintB, setMintB] = useState("");
-
   const [amountA, setAmountA] = useState("");
   const [amountB, setAmountB] = useState("");
+  const [tokens, setTokens] = useState<TokenInfo[]>([]);
 
-  const [isValid, setIsValid] = useState(false);
-  const [loading, setLoading] = useState(false);
-
+  const wallet = useWallet();
+  const { connection } = useConnection();
   const program = useProgram();
 
-  const validateTokens = async () => {
-    if (!mintA || !mintB) return;
+  useEffect(() => {
+    async function getAccountData() {
+      if (!wallet.publicKey) return;
 
-    setLoading(true);
+      const data = await connection.getParsedTokenAccountsByOwner(
+        wallet.publicKey,
+        { programId: TOKEN_PROGRAM_ID },
+      );
 
-    setTimeout(() => {
-      setIsValid(true);
-      setLoading(false);
-    }, 1000);
+      const formatted: TokenInfo[] = data.value
+        .map((acc) => ({
+          tokenAccountAddress: acc.pubkey.toString(),
+          tokenMintAddress: acc.account.data.parsed.info.mint,
+          amount: acc.account.data.parsed.info.tokenAmount.uiAmount,
+        }))
+        .filter((t) => t.amount > 0);
+
+      setTokens(formatted);
+    }
+
+    getAccountData();
+  }, [wallet, connection]);
+
+  const createPool = async () => {
+    if (!program) return;
+    if (!mintA || !mintB || !amountA || !amountB) {
+      alert("Fill all fields");
+      return;
+    }
+
+    if (mintA === mintB) {
+      alert("Select two different tokens");
+      return;
+    }
+
+    const tokenAAccount = tokens.find((t) => t.tokenMintAddress === mintA);
+    const tokenBAccount = tokens.find((t) => t.tokenMintAddress === mintB);
+    const poolPda = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("pool"),
+        new PublicKey(mintA).toBuffer(),
+        new PublicKey(mintB).toBuffer(),
+      ],
+      program.programId,
+    )[0];
+
+    const tokenAVault = Keypair.generate();
+    const tokenBVault = Keypair.generate();
+    const lpMint = Keypair.generate();
+    console.log("tokenAVault" + tokenAVault.publicKey.toString());
+    console.log("tokenBVault" + tokenBVault.publicKey.toString());
+    console.log("lpMint" + lpMint.publicKey.toString());
+
+    // user LP ATA
+    const userLpTokenAccount = await getAssociatedTokenAddress(
+      lpMint.publicKey,
+      wallet.publicKey!,
+    );
+    console.log("userLpTokenAccount" + userLpTokenAccount.toString());
+
+    let tx = await program.methods
+      .initPool(
+        new anchor.BN(Number(amountA) * 1_000_000),
+        new anchor.BN(Number(amountB) * 1_000_000),
+      )
+      .accounts({
+        user: wallet.publicKey!,
+
+        tokenAMint: new PublicKey(mintA),
+        tokenBMint: new PublicKey(mintB),
+
+        userTokenAAccount: new PublicKey(tokenAAccount!.tokenAccountAddress),
+        userTokenBAccount: new PublicKey(tokenBAccount!.tokenAccountAddress),
+
+        tokenAVault: tokenAVault.publicKey,
+        tokenBVault: tokenBVault.publicKey,
+
+        lpMint: lpMint.publicKey,
+
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([tokenAVault, tokenBVault, lpMint])
+      .rpc();
+    await connection.confirmTransaction(tx, "confirmed");
+    console.log(tx);
   };
-
-  const createPool = () => {
-    console.log({
-      mintA,
-      mintB,
-      amountA,
-      amountB,
-    });
-  };
+  console.log(tokens);
+  const formatMint = (mint: string) =>
+    `${mint.slice(0, 6)}...${mint.slice(-6)}`;
 
   return (
     <div className="mx-auto w-full max-w-md">
@@ -51,72 +128,70 @@ export function CreatePool() {
 
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">
-              Token A Mint
-            </label>
-            <Input
-              placeholder="Enter mint address"
-              value={mintA}
-              onChange={(e) => setMintA(e.target.value)}
-            />
+            <label className="text-sm text-muted-foreground">Token A</label>
+            <div className="flex gap-2">
+              <select
+                className="w-2/3 p-2 border rounded-md bg-background"
+                value={mintA}
+                onChange={(e) => setMintA(e.target.value)}
+              >
+                <option value="">Select token</option>
+                {tokens.map((t) => (
+                  <option
+                    key={t.tokenAccountAddress}
+                    value={t.tokenMintAddress}
+                  >
+                    {formatMint(t.tokenMintAddress)} ({t.amount})
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                className="w-1/3 p-2 border rounded-md"
+                placeholder="Amount"
+                value={amountA}
+                onChange={(e) => setAmountA(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">
-              Token B Mint
-            </label>
-            <Input
-              placeholder="Enter mint address"
-              value={mintB}
-              onChange={(e) => setMintB(e.target.value)}
-            />
+            <label className="text-sm text-muted-foreground">Token B</label>
+            <div className="flex gap-2">
+              <select
+                className="w-2/3 p-2 border rounded-md bg-background"
+                value={mintB}
+                onChange={(e) => setMintB(e.target.value)}
+              >
+                <option value="">Select token</option>
+                {tokens.map((t) => (
+                  <option
+                    key={t.tokenAccountAddress}
+                    value={t.tokenMintAddress}
+                  >
+                    {formatMint(t.tokenMintAddress)} ({t.amount})
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                className="w-1/3 p-2 border rounded-md"
+                placeholder="Amount"
+                value={amountB}
+                onChange={(e) => setAmountB(e.target.value)}
+              />
+            </div>
           </div>
 
-          {!isValid && (
-            <Button
-              onClick={validateTokens}
-              disabled={loading || !mintA || !mintB}
-              className="w-full"
-            >
-              {loading ? "Checking..." : "Check Tokens"}
-            </Button>
-          )}
-
-          {isValid && (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
-                  Amount Token A
-                </label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={amountA}
-                  onChange={(e) => setAmountA(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
-                  Amount Token B
-                </label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={amountB}
-                  onChange={(e) => setAmountB(e.target.value)}
-                />
-              </div>
-
-              <Button
-                onClick={createPool}
-                disabled={!amountA || !amountB}
-                className="w-full py-6 text-lg"
-              >
-                Create Pool
-              </Button>
-            </>
-          )}
+          <Button
+            onClick={createPool}
+            disabled={!mintA || !mintB || !amountA || !amountB}
+            className="w-full py-6 text-lg"
+          >
+            Create Pool
+          </Button>
         </CardContent>
       </Card>
     </div>
