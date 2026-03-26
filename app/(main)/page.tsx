@@ -1,7 +1,5 @@
 "use client";
 
-import { StatsGrid } from "@/components/stats-grid";
-
 export default function Home() {
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
@@ -13,9 +11,6 @@ export default function Home() {
           Vertex is a decentralized exchange platform powered by cutting-edge
           AMM technology. Swap tokens, provide liquidity, and earn yield.
         </p>
-      </div>
-      <div className="mb-12">
-        <StatsGrid />
       </div>
     </main>
   );
