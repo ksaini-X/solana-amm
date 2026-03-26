@@ -325,12 +325,16 @@ pub struct ProvideLiquidity<'info>{
         init_if_needed, 
         payer  = user, 
         token::mint = lp_mint, 
-        token::authority = user
+        token::authority = user,
+        token::token_program = associated_token_program
+
     )]
     pub user_lp_token_account: InterfaceAccount<'info, TokenAccount>, 
 
     pub system_program:Program<'info, System>,
 pub token_program: Interface<'info, TokenInterface>,
+pub associated_token_program : Program<'info, AssociatedToken>,
+
     pub rent : Sysvar<'info, Rent>
 }
 

@@ -1,12 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowRightLeft } from "lucide-react";
 import { RawPool } from "@/app/(main)/pools/page";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SwapModal } from "./swap-interface";
+import { DepositModal } from "./deposit-interface";
 
 export const hexToNum = (hex: string) => parseInt(hex, 16);
 
@@ -16,9 +16,17 @@ export const shortAddr = (addr: string, offset?: number) =>
 function PoolCard({
   pool,
   setShowSwapModal,
+  setShowDepositModal,
 }: {
   pool: RawPool;
   setShowSwapModal: ({
+    show,
+    poolId,
+  }: {
+    show: boolean;
+    poolId: string | null;
+  }) => void;
+  setShowDepositModal: ({
     show,
     poolId,
   }: {
@@ -34,7 +42,6 @@ function PoolCard({
     pool.account.lpTokenSupply / Math.pow(10, pool.account.lpTokenMintDecimals);
 
   const spotPrice = reserveA > 0 ? (reserveB / reserveA).toFixed(4) : "0";
-  const router = useRouter();
   return (
     <Card
       className="group relative overflow-hidden border 
@@ -97,6 +104,12 @@ function PoolCard({
               size="sm"
               variant="outline"
               className="border-border gap-1.5 hover:bg-primary/10"
+              onClick={() =>
+                setShowDepositModal({
+                  poolId: pool.publicKey,
+                  show: true,
+                })
+              }
             >
               <Plus className="h-3 w-3" />
               Deposit
@@ -166,6 +179,14 @@ export function PoolsTable({
     show: false,
     poolId: null,
   });
+
+  const [showDepositModal, setShowDepositModal] = useState<{
+    show: boolean;
+    poolId: string | null;
+  }>({
+    show: false,
+    poolId: null,
+  });
   return (
     <div className="space-y-4 relative">
       <div>
@@ -177,6 +198,7 @@ export function PoolsTable({
                   key={pool.publicKey}
                   pool={pool}
                   setShowSwapModal={setShowSwapModal}
+                  setShowDepositModal={setShowDepositModal}
                 />
               ))}
           </div>
@@ -192,6 +214,14 @@ export function PoolsTable({
         <SwapModal
           onClose={() => setShowSwapModal({ poolId: null, show: false })}
           pool={pools.find((pool) => pool.publicKey === showSwapModal.poolId)!}
+        />
+      )}
+      {showDepositModal.show && (
+        <DepositModal
+          onClose={() => setShowDepositModal({ poolId: null, show: false })}
+          pool={
+            pools.find((pool) => pool.publicKey === showDepositModal.poolId)!
+          }
         />
       )}
     </div>
