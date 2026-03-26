@@ -10,8 +10,13 @@ import { shortAddr } from "./pools-table";
 import useProgram from "@/hooks/useProgram";
 import * as anchor from "@coral-xyz/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 
 export function DepositModal({
   pool,
@@ -84,12 +89,16 @@ export function DepositModal({
         tokenBMint: new PublicKey(pool.account.tokenBMint),
         userTokenAAccount,
         userTokenBAccount,
+        userLpTokenAccount, // YOU MUST PASS THIS for init_if_needed
         tokenAVault: new PublicKey(pool.account.tokenAVault),
         tokenBVault: new PublicKey(pool.account.tokenBVault),
         lpMint: new PublicKey(pool.account.lpTokenMint),
-        tokenProgram: TOKEN_PROGRAM_ID,
-        userLpTokenAccount,
         pool: new PublicKey(pool.publicKey),
+        // Programs & Sysvars
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
       })
       .rpc();
   }

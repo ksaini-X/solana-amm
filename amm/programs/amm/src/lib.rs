@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface, }, associated_token::{AssociatedToken, },
-    token::{self, Transfer}, 
+    token::{self, Transfer,}, 
 };
 
 declare_id!("5VsMwVWVEmULcrMM67GkJjGWa393TLcJmRBqyppnX9r4");
@@ -271,7 +271,6 @@ pub struct InitPool<'info> {
         payer  = user, 
         associated_token::mint = lp_mint, 
         associated_token::authority = user, 
-        token::token_program = associated_token_program
     )]
     pub user_lp_token_account: InterfaceAccount<'info, TokenAccount>, 
 
@@ -288,7 +287,6 @@ pub struct ProvideLiquidity<'info>{
     #[account(mut)]
     pub user : Signer<'info>, 
 
-    #[account(mut)]
     pub token_a_mint: InterfaceAccount<'info, Mint>,
     pub token_b_mint: InterfaceAccount<'info, Mint>,
 
@@ -298,24 +296,28 @@ pub struct ProvideLiquidity<'info>{
     pub user_token_b_account: InterfaceAccount<'info, TokenAccount>,
 
      #[account(
+        mut, 
         seeds = [b"pool", token_a_mint.key().as_ref(), token_b_mint.key().as_ref()], 
         bump
     )]
     pub pool: Account<'info, Pool>,
 
     #[account(
+        mut, 
         token::mint = token_a_mint, 
         token::authority = pool
     )]
     pub token_a_vault:InterfaceAccount<'info, TokenAccount >, 
 
     #[account(
+        mut, 
         token::mint = token_b_mint, 
         token::authority = pool
     )]
     pub token_b_vault:InterfaceAccount<'info, TokenAccount >,
 
     #[account(
+        mut, 
         mint::decimals = 6, 
         mint::authority = pool
     )]
@@ -324,16 +326,14 @@ pub struct ProvideLiquidity<'info>{
     #[account(
         init_if_needed, 
         payer  = user, 
-        token::mint = lp_mint, 
-        token::authority = user,
-        token::token_program = associated_token_program
-
+        associated_token::mint = lp_mint,
+        associated_token::authority = user,
     )]
-    pub user_lp_token_account: InterfaceAccount<'info, TokenAccount>, 
+    pub user_lp_token_account: Account<'info, token::TokenAccount>, 
 
     pub system_program:Program<'info, System>,
-pub token_program: Interface<'info, TokenInterface>,
-pub associated_token_program : Program<'info, AssociatedToken>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program : Program<'info, AssociatedToken>,
 
     pub rent : Sysvar<'info, Rent>
 }
