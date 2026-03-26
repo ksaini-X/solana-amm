@@ -13,14 +13,6 @@ export const hexToNum = (hex: string) => parseInt(hex, 16);
 export const shortAddr = (addr: string, offset?: number) =>
   `${addr.slice(0, offset || 10)}...${addr.slice(-1 * (offset || 10))}`;
 
-export const formatReserve = (n: number) => {
-  if (n / 1_000_000 >= 1_000_000_000)
-    return `${(n / 1_000_000_000).toFixed(2)}B`;
-  if (n / 1_000_000 >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n / 1_000_000 >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
-  return n.toString();
-};
-
 function PoolCard({
   pool,
   setShowSwapModal,
@@ -34,9 +26,12 @@ function PoolCard({
     poolId: string | null;
   }) => void;
 }) {
-  const reserveA = hexToNum(pool.account.tokenAReserves) / 1_000_000;
-  const reserveB = hexToNum(pool.account.tokenBReserves) / 1_000_000;
-  const lpSupply = hexToNum(pool.account.lpTokenSupply) / 1_000_000;
+  const reserveA =
+    pool.account.tokenAReserves / Math.pow(10, pool.account.tokenAMintDecimals);
+  const reserveB =
+    pool.account.tokenBReserves / Math.pow(10, pool.account.tokenBMintDecimals);
+  const lpSupply =
+    pool.account.lpTokenSupply / Math.pow(10, pool.account.lpTokenMintDecimals);
 
   const spotPrice = reserveA > 0 ? (reserveB / reserveA).toFixed(4) : "0";
   const router = useRouter();
@@ -80,16 +75,12 @@ function PoolCard({
         <div className="flex justify-between border-b border-neutral-800">
           <div className="rounded-xl bg-secondary/40 px-3 py-3">
             <p className="text-sm text-muted-foreground mb-1">Token A</p>
-            <p className="font-mono text-2xl font-extrabold">
-              {formatReserve(reserveA)}
-            </p>
+            <p className="font-mono text-2xl font-extrabold">{reserveA}</p>
           </div>
 
           <div className="rounded-xl bg-secondary/40 px-3 py-3">
             <p className="text-sm text-muted-foreground mb-1">Token B</p>
-            <p className="font-mono text-2xl font-extrabold">
-              {formatReserve(reserveB)}
-            </p>
+            <p className="font-mono text-2xl font-extrabold">{reserveB}</p>
           </div>
         </div>
 
@@ -97,7 +88,7 @@ function PoolCard({
           <div>
             <p className="text-[10px] text-muted-foreground mb-1">LP Supply</p>
             <p className="font-mono text-xs text-muted-foreground">
-              {formatReserve(lpSupply)}
+              {lpSupply}
             </p>
           </div>
 
@@ -180,13 +171,14 @@ export function PoolsTable({
       <div>
         {pools.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {pools.map((pool) => (
-              <PoolCard
-                key={pool.publicKey}
-                pool={pool}
-                setShowSwapModal={setShowSwapModal}
-              />
-            ))}
+            {pools.length > 0 &&
+              pools.map((pool) => (
+                <PoolCard
+                  key={pool.publicKey}
+                  pool={pool}
+                  setShowSwapModal={setShowSwapModal}
+                />
+              ))}
           </div>
         ) : (
           !loading && (

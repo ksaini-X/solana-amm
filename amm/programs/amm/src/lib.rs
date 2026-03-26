@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{self, Transfer}, 
 };
 
-declare_id!("4zkf56GMsxcj5QVozMvXv59WBNqgGRnfMPbgfHssY3HY");
+declare_id!("5VsMwVWVEmULcrMM67GkJjGWa393TLcJmRBqyppnX9r4");
 
 #[program]
 pub mod amm {
@@ -56,6 +56,8 @@ pub mod amm {
         ctx.accounts.pool.token_a_mint = ctx.accounts.token_a_mint.key();
         ctx.accounts.pool.token_b_mint = ctx.accounts.token_b_mint.key();
         ctx.accounts.pool.lp_token_mint = ctx.accounts.lp_mint.key();
+        ctx.accounts.pool.token_a_vault = ctx.accounts.token_a_vault.key();
+        ctx.accounts.pool.token_b_vault = ctx.accounts.token_b_vault.key();
 
         Ok(())
     }
@@ -362,10 +364,17 @@ pub struct Swap<'info>{
     #[account(mut)]
     pub user_token_b_account : InterfaceAccount<'info, TokenAccount>, 
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_a_mint, 
+        token::authority = pool
+    )]
     pub token_a_vault: InterfaceAccount<'info, TokenAccount>, 
-    #[account(mut)]
-    pub token_b_vault: InterfaceAccount<'info, TokenAccount>, 
+    #[account(
+        mut,
+        token::mint = token_b_mint, 
+        token::authority = pool
+    )]    pub token_b_vault: InterfaceAccount<'info, TokenAccount>, 
 
     pub token_program: Interface<'info, TokenInterface>,
 

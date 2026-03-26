@@ -132,6 +132,7 @@ export function CreatePool({
       await connection.confirmTransaction(tx, "confirmed");
       console.log(tx);
     } catch (error) {
+      console.log(error);
     } finally {
       setLoading(false);
     }

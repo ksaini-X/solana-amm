@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowDownUp, X } from "lucide-react";
 import { RawPool } from "@/app/(main)/pools/page";
-import { formatReserve, hexToNum, shortAddr } from "./pools-table";
-
+import { shortAddr } from "./pools-table";
+import useProgram from "@/hooks/useProgram";
+import * as anchor from "@coral-xyz/anchor";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 export function SwapModal({
   pool,
   onClose,
@@ -18,11 +22,16 @@ export function SwapModal({
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [isReversed, setIsReversed] = useState(false);
+  const program = useProgram();
+  const wallet = useWallet();
+  const {} = useConnection();
 
-  const reserveA = hexToNum(pool.account.tokenAReserves);
-  console.log(reserveA);
-  const reserveB = hexToNum(pool.account.tokenBReserves);
-  const lpSupply = hexToNum(pool.account.lpTokenSupply);
+  const reserveA =
+    pool.account.tokenAReserves / Math.pow(10, pool.account.tokenAMintDecimals);
+  const reserveB =
+    pool.account.tokenBReserves / Math.pow(10, pool.account.tokenBMintDecimals);
+  const lpSupply =
+    pool.account.lpTokenSupply / Math.pow(10, pool.account.lpTokenMintDecimals);
 
   const reserveIn = isReversed ? reserveB : reserveA;
   const reserveOut = isReversed ? reserveA : reserveB;
@@ -39,6 +48,37 @@ export function SwapModal({
     setToAmount(out.toFixed(6));
   }, [fromAmount, isReversed]);
 
+  async function handleSwap() {
+    const side = isReversed ? { aToB: {} } : { bToA: {} };
+    if (!wallet.publicKey) return;
+    const userTokenAAccount = await getAssociatedTokenAddress(
+      new PublicKey(pool.account.tokenAMint),
+      wallet.publicKey,
+    );
+
+    const userTokenBAccount = await getAssociatedTokenAddress(
+      new PublicKey(pool.account.tokenBMint),
+      wallet.publicKey,
+    );
+    const amount = isReversed
+      ? Number(fromAmount) * Math.pow(10, pool.account.tokenBMintDecimals)
+      : Number(fromAmount) * Math.pow(10, pool.account.tokenAMintDecimals);
+
+    await program?.methods
+      .swap(new anchor.BN(amount), isReversed ? { btoA: {} } : { atoB: {} })
+      .accounts({
+        user: wallet.publicKey!,
+        tokenAMint: new PublicKey(pool.account.tokenAMint),
+        tokenBMint: new PublicKey(pool.account.tokenBMint),
+        userTokenAAccount,
+        userTokenBAccount,
+        tokenAVault: new PublicKey(pool.account.tokenAVault),
+        tokenBVault: new PublicKey(pool.account.tokenBVault),
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+  }
+
   const price = reserveA > 0 ? (reserveB / reserveA).toFixed(6) : "0";
 
   return (
@@ -52,7 +92,6 @@ export function SwapModal({
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* FROM */}
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">You pay</p>
 
@@ -79,7 +118,6 @@ export function SwapModal({
             </div>
           </div>
 
-          {/* SWITCH */}
           <div className="flex justify-center">
             <Button
               size="icon"
@@ -91,7 +129,6 @@ export function SwapModal({
             </Button>
           </div>
 
-          {/* TO */}
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">You receive</p>
 
@@ -116,30 +153,25 @@ export function SwapModal({
               </div>
             </div>
           </div>
-
-          {/* INFO */}
           <div className="rounded-xl bg-secondary/50 p-3 text-sm space-y-3">
-            {/* Price */}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Price</span>
               <span>1 A = {price} B</span>
             </div>
 
-            {/* Reserves */}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Reserve A</span>
-              <span className="font-mono">{formatReserve(reserveA)}</span>
+              <span className="font-mono">{reserveA}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-muted-foreground">Reserve B</span>
-              <span className="font-mono">{formatReserve(reserveB)}</span>
+              <span className="font-mono">{reserveB}</span>
             </div>
 
-            {/* LP */}
             <div className="flex justify-between">
               <span className="text-muted-foreground">LP Supply</span>
-              <span className="font-mono">{formatReserve(lpSupply)}</span>
+              <span className="font-mono">{lpSupply}</span>
             </div>
 
             <div className="flex justify-between">
@@ -149,7 +181,6 @@ export function SwapModal({
               </span>
             </div>
 
-            {/* Pool */}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Pool</span>
               <span className="font-mono text-xs">
@@ -158,8 +189,9 @@ export function SwapModal({
             </div>
           </div>
 
-          {/* ACTION */}
-          <Button className="w-full text-lg py-6">Swap</Button>
+          <Button className="w-full text-lg py-6" onClick={handleSwap}>
+            Swap
+          </Button>
         </CardContent>
       </Card>
     </div>

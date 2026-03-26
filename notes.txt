@@ -7,3 +7,18 @@ In token transfers
     WHY?
         - Deserializes into specif accountype
         - InterfaceAccount accepts both TokenProgram and Token2020Program
+
+If a state Pubkey is not set in instruction
+like 
+account{
+    vaultPubkey:Pubkey
+}
+    in ix if its not setthen it defaults to 111111111
+
+
+
+Versioning
+
+if the state of a program is updated, the different data can be fetched by Versioning
+put the first parameter as a u8 called Versioning
+and data can be filtered using the dataMcp in fetch
