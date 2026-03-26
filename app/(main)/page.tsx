@@ -21,16 +21,6 @@ export default function Home() {
       <div className="mb-12">
         <StatsGrid />
       </div>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <SwapInterface />
-        </div>
-
-        <div className="lg:col-span-2">
-          <PoolsTable />
-        </div>
-      </div>
     </main>
   );
 }

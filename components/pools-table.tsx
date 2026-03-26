@@ -5,21 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Plus, ArrowRightLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import useProgram from "@/hooks/useProgram";
-
-interface RawPool {
-  publicKey: string;
-  account: {
-    tokenAReserves: string;
-    tokenBReserves: string;
-    tokenAMint: string;
-    tokenBMint: string;
-    lpTokenMint: string;
-    lpTokenSupply: string;
-  };
-}
+import { RawPool } from "@/app/(main)/pools/page";
 
 const hexToNum = (hex: string) => parseInt(hex, 16);
-const shortAddr = (addr: string) => `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+const shortAddr = (addr: string) => `${addr.slice(0, 10)}...${addr.slice(-10)}`;
 const formatReserve = (n: number) => {
   if (n / 1_000_000 >= 1_000_000_000)
     return `${(n / 1_000_000_000).toFixed(2)}B`;
@@ -29,69 +18,119 @@ const formatReserve = (n: number) => {
 };
 
 function PoolCard({ pool }: { pool: RawPool }) {
-  const reserveA = hexToNum(pool.account.tokenAReserves);
-  const reserveB = hexToNum(pool.account.tokenBReserves);
-  const lpSupply = hexToNum(pool.account.lpTokenSupply);
-  const spotPrice = (reserveB / reserveA).toFixed(4);
+  const reserveA = hexToNum(pool.account.tokenAReserves) / 1_000_000;
+  const reserveB = hexToNum(pool.account.tokenBReserves) / 1_000_000;
+  const lpSupply = hexToNum(pool.account.lpTokenSupply) / 1_000_000;
+
+  const spotPrice = reserveA > 0 ? (reserveB / reserveA).toFixed(4) : "0";
 
   return (
-    <Card className="border-border bg-card hover:bg-secondary/30 transition-colors">
-      <CardContent className="p-5 space-y-4">
+    <Card
+      className="group relative overflow-hidden border 
+    border-border/60 bg-lienar-to-br from-card to-card/80 hover:shadow-xl 
+    hover:shadow-primary/10 transition-all duration-300 rounded-2xl"
+    >
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 
+      transition bg-lienar-to-r from-primary/10 via-transparent to-primary/10"
+      />
+
+      <CardContent className="relative p-5 space-y-5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="flex -space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold ring-2 ring-card">
+              <div
+                className="h-9 w-9 flex items-center justify-center rounded-full 
+              bg-primary/20 text-xs font-bold ring-2 ring-card"
+              >
                 A
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold ring-2 ring-card">
+              <div
+                className="h-9 w-9 flex items-center justify-center rounded-full 
+              bg-primary/10 text-xs font-bold ring-2 ring-card"
+              >
                 B
               </div>
             </div>
           </div>
 
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Spot Price
-            </p>
             <span className="rounded-md bg-primary/10 px-2 py-1 font-mono text-xs text-primary font-semibold">
-              {spotPrice}
+              {spotPrice} B/A
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg bg-secondary/50 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Reserve A
-            </p>
-            <p className="font-mono text-sm font-semibold text-foreground">
+        <div className="flex justify-between border-b border-neutral-800">
+          <div className="rounded-xl bg-secondary/40 px-3 py-3">
+            <p className="text-sm text-muted-foreground mb-1">Token A</p>
+            <p className="font-mono text-2xl font-extrabold">
               {formatReserve(reserveA)}
             </p>
           </div>
-          <div className="rounded-lg bg-secondary/50 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Reserve B
-            </p>
-            <p className="font-mono text-sm font-semibold text-foreground">
+
+          <div className="rounded-xl bg-secondary/40 px-3 py-3">
+            <p className="text-sm text-muted-foreground mb-1">Token B</p>
+            <p className="font-mono text-2xl font-extrabold">
               {formatReserve(reserveB)}
             </p>
           </div>
         </div>
 
-        {/* LP Supply + action */}
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              LP Supply
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-1">LP Supply</p>
             <p className="font-mono text-xs text-muted-foreground">
               {formatReserve(lpSupply)}
             </p>
           </div>
-          <Button size="sm" variant="outline" className="border-border gap-1.5">
-            <Plus className="h-3 w-3" />
-            Deposit
-          </Button>
+
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-border gap-1.5 hover:bg-primary/10"
+            >
+              <Plus className="h-3 w-3" />
+              Deposit
+            </Button>
+
+            <Button
+              size="sm"
+              className="gap-1.5 bg-primary hover:bg-primary/90"
+            >
+              <ArrowRightLeft className="h-3 w-3" />
+              Swap
+            </Button>
+          </div>
+        </div>
+
+        <div className="text-xs text-muted-foreground border-t pt-3 space-y-2">
+          <div className="flex justify-between">
+            <span>Token A</span>
+            <span className="font-mono">
+              {shortAddr(pool.account.tokenAMint)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Token B</span>
+            <span className="font-mono">
+              {shortAddr(pool.account.tokenBMint)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>LP Mint</span>
+            <span className="font-mono">
+              {shortAddr(pool.account.lpTokenMint)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Pool</span>
+            <span className="font-mono">{shortAddr(pool.publicKey)}</span>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -101,58 +140,16 @@ function PoolCard({ pool }: { pool: RawPool }) {
 export function PoolsTable({
   loading,
   setLoading,
+  pools,
 }: {
   loading: boolean;
   setLoading: (v: boolean) => void;
+  pools: RawPool[];
 }) {
   const program = useProgram();
-  const [pools, setPools] = useState<RawPool[]>([]);
-
-  useEffect(() => {
-    async function fetchPools() {
-      if (!program) return;
-      try {
-        const allPools = await program.account.pool.all();
-        const normalized = allPools.map((p: any) => ({
-          publicKey: p.publicKey.toString(),
-          account: {
-            tokenAReserves: p.account.tokenAReserves.toString(16),
-            tokenBReserves: p.account.tokenBReserves.toString(16),
-            tokenAVault: p.account.tokenAVault.toString(),
-            tokenBVault: p.account.tokenBVault.toString(),
-            tokenAMint: p.account.tokenAMint.toString(),
-            tokenBMint: p.account.tokenBMint.toString(),
-            lpTokenMint: p.account.lpTokenMint.toString(),
-            lpTokenSupply: p.account.lpTokenSupply.toString(16),
-          },
-        }));
-        setPools(normalized);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    fetchPools();
-  }, [program]);
 
   return (
     <div className="space-y-4">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">
-            Liquidity Pools
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Provide liquidity and earn fees
-          </p>
-        </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Liquidity</span>
-        </Button>
-      </div>
-
-      {/* Pool cards grid */}
       {pools.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pools.map((pool) => (

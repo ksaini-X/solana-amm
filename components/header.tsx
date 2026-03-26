@@ -22,22 +22,10 @@ export function Header() {
 
         <nav className="hidden gap-8 md:flex">
           <Link
-            href="/swap"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Swap
-          </Link>
-          <Link
             href="/pools"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Pools
-          </Link>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Dashboard
           </Link>
         </nav>
 

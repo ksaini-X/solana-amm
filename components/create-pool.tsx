@@ -9,17 +9,21 @@ import useProgram from "@/hooks/useProgram";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
+import { RawPool } from "@/app/(main)/pools/page";
 type TokenInfo = {
   tokenAccountAddress: string;
   tokenMintAddress: string;
   amount: number;
+  decimals: number;
 };
 
 export function CreatePool({
   loading,
   setLoading,
+  pools,
 }: {
   loading: boolean;
+  pools: RawPool[];
   setLoading: (loading: boolean) => void;
 }) {
   const [mintA, setMintA] = useState("");
@@ -40,12 +44,13 @@ export function CreatePool({
         wallet.publicKey,
         { programId: TOKEN_PROGRAM_ID },
       );
-
+      console.log(data);
       const formatted: TokenInfo[] = data.value
         .map((acc) => ({
           tokenAccountAddress: acc.pubkey.toString(),
           tokenMintAddress: acc.account.data.parsed.info.mint,
           amount: acc.account.data.parsed.info.tokenAmount.uiAmount,
+          decimals: acc.account.data.parsed.info.tokenAmount.decimals,
         }))
         .filter((t) => t.amount > 0);
 
@@ -66,17 +71,27 @@ export function CreatePool({
       alert("Select two different tokens");
       return;
     }
-
+    const poolExcists = pools.find(
+      (pool) =>
+        (pool.account.tokenAMint === mintA ||
+          pool.account.tokenBMint === mintA) &&
+        (pool.account.tokenAMint === mintB ||
+          pool.account.tokenBMint === mintB),
+    );
+    if (poolExcists) {
+      alert("Pool exists, Add liquidity instead");
+      return;
+    }
     const tokenAAccount = tokens.find((t) => t.tokenMintAddress === mintA);
     const tokenBAccount = tokens.find((t) => t.tokenMintAddress === mintB);
-    const poolPda = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("pool"),
-        new PublicKey(mintA).toBuffer(),
-        new PublicKey(mintB).toBuffer(),
-      ],
-      program.programId,
-    )[0];
+    if (!tokenAAccount || !tokenBAccount) return;
+    if (
+      Number(amountA) > tokenAAccount.amount ||
+      Number(amountB) > tokenBAccount.amount
+    ) {
+      alert("Insufficent amount");
+      return;
+    }
 
     const tokenAVault = Keypair.generate();
     const tokenBVault = Keypair.generate();
@@ -85,7 +100,6 @@ export function CreatePool({
     console.log("tokenBVault" + tokenBVault.publicKey.toString());
     console.log("lpMint" + lpMint.publicKey.toString());
 
-    // user LP ATA
     try {
       setLoading(true);
       const userLpTokenAccount = await getAssociatedTokenAddress(
@@ -96,8 +110,8 @@ export function CreatePool({
 
       let tx = await program.methods
         .initPool(
-          new anchor.BN(Number(amountA) * 1_000_000),
-          new anchor.BN(Number(amountB) * 1_000_000),
+          new anchor.BN(Number(amountA) * tokenAAccount?.decimals!),
+          new anchor.BN(Number(amountB) * tokenBAccount?.decimals!),
         )
         .accounts({
           user: wallet.publicKey!,
