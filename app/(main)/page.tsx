@@ -1,8 +1,5 @@
 "use client";
 
-import { Header } from "@/components/header";
-import { SwapInterface } from "@/components/swap-interface";
-import { PoolsTable } from "@/components/pools-table";
 import { StatsGrid } from "@/components/stats-grid";
 
 export default function Home() {
@@ -17,7 +14,6 @@ export default function Home() {
           AMM technology. Swap tokens, provide liquidity, and earn yield.
         </p>
       </div>
-
       <div className="mb-12">
         <StatsGrid />
       </div>

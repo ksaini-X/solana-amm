@@ -6,7 +6,10 @@ import { Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CreatePool } from "@/components/create-pool";
 import useProgram from "@/hooks/useProgram";
-
+import { getMint } from "@solana/spl-token";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { Poller_One } from "next/font/google";
 export interface RawPool {
   publicKey: string;
   account: {
@@ -18,8 +21,8 @@ export interface RawPool {
     lpTokenSupply: string;
   };
 }
-export function normalisePool(p: any) {
-  return {
+export async function normalisePool(p: any, connection: Connection) {
+  const pool = {
     publicKey: p.publicKey.toString(),
     account: {
       tokenAReserves: p.account.tokenAReserves.toString(16),
@@ -32,8 +35,17 @@ export function normalisePool(p: any) {
       lpTokenSupply: p.account.lpTokenSupply.toString(16),
     },
   };
+  const tokenADecimals = await getTokenDetails(connection, pool.account.tokenAMint);
+  return pool;
+}
+async function getTokenDetails(connection: Connection, mint: PublicKey) {
+  const details = await getMint(connection, mint);
+  console.log("GetTOkenDetails");
+  console.log(details);
 }
 export default function PoolsPage() {
+  const { connection } = useConnection();
+
   const [createPool, setCreatePool] = useState(false);
   const [loading, setLoading] = useState(false);
   const program = useProgram();
@@ -46,7 +58,7 @@ export default function PoolsPage() {
       try {
         const allPools = await program.account.pool.all();
         console.log(allPools);
-        const normalized = allPools.map((p: any) => normalisePool(p));
+        const normalized = allPools.map((p: any) => normalisePool(p, connection));
         setPools(normalized);
       } catch (e) {
         console.error(e);
