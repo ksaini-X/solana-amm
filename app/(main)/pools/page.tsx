@@ -18,33 +18,35 @@ export interface RawPool {
     lpTokenSupply: string;
   };
 }
-
+export function normalisePool(p: any) {
+  return {
+    publicKey: p.publicKey.toString(),
+    account: {
+      tokenAReserves: p.account.tokenAReserves.toString(16),
+      tokenBReserves: p.account.tokenBReserves.toString(16),
+      tokenAVault: p.account.tokenAVault.toString(),
+      tokenBVault: p.account.tokenBVault.toString(),
+      tokenAMint: p.account.tokenAMint.toString(),
+      tokenBMint: p.account.tokenBMint.toString(),
+      lpTokenMint: p.account.lpTokenMint.toString(),
+      lpTokenSupply: p.account.lpTokenSupply.toString(16),
+    },
+  };
+}
 export default function PoolsPage() {
   const [createPool, setCreatePool] = useState(false);
   const [loading, setLoading] = useState(false);
   const program = useProgram();
 
   const [pools, setPools] = useState<RawPool[]>([]);
-
+  console.log(pools);
   useEffect(() => {
     async function fetchPools() {
       if (!program) return;
       try {
         const allPools = await program.account.pool.all();
         console.log(allPools);
-        const normalized = allPools.map((p: any) => ({
-          publicKey: p.publicKey.toString(),
-          account: {
-            tokenAReserves: p.account.tokenAReserves.toString(16),
-            tokenBReserves: p.account.tokenBReserves.toString(16),
-            tokenAVault: p.account.tokenAVault.toString(),
-            tokenBVault: p.account.tokenBVault.toString(),
-            tokenAMint: p.account.tokenAMint.toString(),
-            tokenBMint: p.account.tokenBMint.toString(),
-            lpTokenMint: p.account.lpTokenMint.toString(),
-            lpTokenSupply: p.account.lpTokenSupply.toString(16),
-          },
-        }));
+        const normalized = allPools.map((p: any) => normalisePool(p));
         setPools(normalized);
       } catch (e) {
         console.error(e);

@@ -107,12 +107,10 @@ export function CreatePool({
         wallet.publicKey!,
       );
       console.log("userLpTokenAccount" + userLpTokenAccount.toString());
-
+      const rawAmountA = Number(amountA) * Math.pow(10, tokenAAccount.decimals);
+      const rawAmountB = Number(amountB) * Math.pow(10, tokenBAccount.decimals);
       let tx = await program.methods
-        .initPool(
-          new anchor.BN(Number(amountA) * tokenAAccount?.decimals!),
-          new anchor.BN(Number(amountB) * tokenBAccount?.decimals!),
-        )
+        .initPool(new anchor.BN(rawAmountA), new anchor.BN(rawAmountB))
         .accounts({
           user: wallet.publicKey!,
 

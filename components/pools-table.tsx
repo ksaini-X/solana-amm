@@ -3,13 +3,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowRightLeft } from "lucide-react";
-import { useEffect, useState } from "react";
-import useProgram from "@/hooks/useProgram";
 import { RawPool } from "@/app/(main)/pools/page";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { SwapModal } from "./swap-interface";
 
-const hexToNum = (hex: string) => parseInt(hex, 16);
-const shortAddr = (addr: string) => `${addr.slice(0, 10)}...${addr.slice(-10)}`;
-const formatReserve = (n: number) => {
+export const hexToNum = (hex: string) => parseInt(hex, 16);
+
+export const shortAddr = (addr: string, offset?: number) =>
+  `${addr.slice(0, offset || 10)}...${addr.slice(-1 * (offset || 10))}`;
+
+export const formatReserve = (n: number) => {
   if (n / 1_000_000 >= 1_000_000_000)
     return `${(n / 1_000_000_000).toFixed(2)}B`;
   if (n / 1_000_000 >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -17,13 +21,25 @@ const formatReserve = (n: number) => {
   return n.toString();
 };
 
-function PoolCard({ pool }: { pool: RawPool }) {
+function PoolCard({
+  pool,
+  setShowSwapModal,
+}: {
+  pool: RawPool;
+  setShowSwapModal: ({
+    show,
+    poolId,
+  }: {
+    show: boolean;
+    poolId: string | null;
+  }) => void;
+}) {
   const reserveA = hexToNum(pool.account.tokenAReserves) / 1_000_000;
   const reserveB = hexToNum(pool.account.tokenBReserves) / 1_000_000;
   const lpSupply = hexToNum(pool.account.lpTokenSupply) / 1_000_000;
 
   const spotPrice = reserveA > 0 ? (reserveB / reserveA).toFixed(4) : "0";
-
+  const router = useRouter();
   return (
     <Card
       className="group relative overflow-hidden border 
@@ -98,6 +114,12 @@ function PoolCard({ pool }: { pool: RawPool }) {
             <Button
               size="sm"
               className="gap-1.5 bg-primary hover:bg-primary/90"
+              onClick={() =>
+                setShowSwapModal({
+                  poolId: pool.publicKey,
+                  show: true,
+                })
+              }
             >
               <ArrowRightLeft className="h-3 w-3" />
               Swap
@@ -146,22 +168,39 @@ export function PoolsTable({
   setLoading: (v: boolean) => void;
   pools: RawPool[];
 }) {
-  const program = useProgram();
-
+  const [showSwapModal, setShowSwapModal] = useState<{
+    show: boolean;
+    poolId: string | null;
+  }>({
+    show: false,
+    poolId: null,
+  });
   return (
-    <div className="space-y-4">
-      {pools.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {pools.map((pool) => (
-            <PoolCard key={pool.publicKey} pool={pool} />
-          ))}
-        </div>
-      ) : (
-        !loading && (
-          <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border">
-            <p className="text-sm text-muted-foreground">No pools found.</p>
+    <div className="space-y-4 relative">
+      <div>
+        {pools.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pools.map((pool) => (
+              <PoolCard
+                key={pool.publicKey}
+                pool={pool}
+                setShowSwapModal={setShowSwapModal}
+              />
+            ))}
           </div>
-        )
+        ) : (
+          !loading && (
+            <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border">
+              <p className="text-sm text-muted-foreground">No pools found.</p>
+            </div>
+          )
+        )}
+      </div>
+      {showSwapModal.show && (
+        <SwapModal
+          onClose={() => setShowSwapModal({ poolId: null, show: false })}
+          pool={pools.find((pool) => pool.publicKey === showSwapModal.poolId)!}
+        />
       )}
     </div>
   );

@@ -1,114 +1,165 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowDownUp, ChevronDown, Zap } from "lucide-react";
+import { ArrowDownUp, X } from "lucide-react";
+import { RawPool } from "@/app/(main)/pools/page";
+import { formatReserve, hexToNum, shortAddr } from "./pools-table";
 
-interface SwapToken {
-  name: string;
-  symbol: string;
-  balance: string;
-  icon: string;
-}
+export function SwapModal({
+  pool,
+  onClose,
+}: {
+  pool: RawPool;
+  onClose: () => void;
+}) {
+  const [fromAmount, setFromAmount] = useState("");
+  const [toAmount, setToAmount] = useState("");
+  const [isReversed, setIsReversed] = useState(false);
 
-const tokens: SwapToken[] = [
-  { name: "Ethereum", symbol: "ETH", balance: "5.25", icon: "◆" },
-  { name: "USDC", symbol: "USDC", balance: "10,250", icon: "$" },
-  { name: "DAI", symbol: "DAI", balance: "8,500", icon: "⬠" },
-];
+  const reserveA = hexToNum(pool.account.tokenAReserves);
+  console.log(reserveA);
+  const reserveB = hexToNum(pool.account.tokenBReserves);
+  const lpSupply = hexToNum(pool.account.lpTokenSupply);
 
-export function SwapInterface() {
-  const [fromAmount, setFromAmount] = useState("1");
-  const [toAmount, setToAmount] = useState("1845.32");
+  const reserveIn = isReversed ? reserveB : reserveA;
+  const reserveOut = isReversed ? reserveA : reserveB;
+
+  useEffect(() => {
+    if (!fromAmount || Number(fromAmount) <= 0) {
+      setToAmount("");
+      return;
+    }
+
+    const amountIn = Number(fromAmount);
+    const out = (amountIn * reserveOut) / (reserveIn + amountIn);
+
+    setToAmount(out.toFixed(6));
+  }, [fromAmount, isReversed]);
+
+  const price = reserveA > 0 ? (reserveB / reserveA).toFixed(6) : "0";
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <Card className="border-border bg-card">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center justify-between text-lg">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-2xl z-50">
+      <Card className="w-full max-w-md border-border bg-card rounded-2xl shadow-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
             <span>Swap</span>
-            <Zap className="h-5 w-5 text-primary" />
+            <X className="cursor-pointer" onClick={onClose} />
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          {/* From Token */}
+        <CardContent className="space-y-5">
+          {/* FROM */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              You pay
-            </label>
+            <p className="text-sm text-muted-foreground">You pay</p>
+
             <div className="flex gap-2">
               <Input
                 type="number"
                 value={fromAmount}
                 onChange={(e) => setFromAmount(e.target.value)}
                 placeholder="0"
-                className="flex-1 bg-secondary text-lg font-semibold text-foreground placeholder:text-muted-foreground"
+                className="bg-secondary text-lg font-semibold"
               />
-              <Button variant="outline" className="gap-2 border-border">
-                <span className="text-lg">◆</span>
-                <span className="text-sm font-medium">ETH</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
+
+              <div className="px-3 flex items-center rounded-lg bg-secondary text-sm font-medium gap-1">
+                <span>{isReversed ? "B" : "A"}</span>
+                <span className="text-muted-foreground text-xs">
+                  {shortAddr(
+                    isReversed
+                      ? pool.account.tokenBMint
+                      : pool.account.tokenAMint,
+                    4,
+                  )}
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">Balance: 5.25 ETH</p>
           </div>
 
-          {/* Swap Button */}
+          {/* SWITCH */}
           <div className="flex justify-center">
             <Button
               size="icon"
-              className="rounded-full border border-border bg-secondary hover:bg-secondary/80"
               variant="outline"
+              className="rounded-full"
+              onClick={() => setIsReversed((p) => !p)}
             >
-              <ArrowDownUp className="h-5 w-5" />
+              <ArrowDownUp className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* To Token */}
+          {/* TO */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              You receive
-            </label>
+            <p className="text-sm text-muted-foreground">You receive</p>
+
             <div className="flex gap-2">
               <Input
-                type="number"
                 value={toAmount}
                 readOnly
                 placeholder="0"
-                className="flex-1 bg-secondary text-lg font-semibold text-foreground"
+                className="bg-secondary text-lg font-semibold"
               />
-              <Button variant="outline" className="gap-2 border-border">
-                <span className="text-lg">$</span>
-                <span className="text-sm font-medium">USDC</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
+
+              <div className="px-3 flex items-center rounded-lg bg-secondary text-sm font-medium gap-1">
+                <span>{isReversed ? "A" : "B"}</span>
+                <span className="text-muted-foreground text-xs">
+                  {shortAddr(
+                    isReversed
+                      ? pool.account.tokenAMint
+                      : pool.account.tokenBMint,
+                    4,
+                  )}
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Balance: 10,250 USDC
-            </p>
           </div>
 
-          {/* Price Info */}
-          <div className="rounded-lg bg-secondary p-3">
-            <div className="flex items-center justify-between text-sm">
+          {/* INFO */}
+          <div className="rounded-xl bg-secondary/50 p-3 text-sm space-y-3">
+            {/* Price */}
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Price</span>
-              <span className="font-medium text-foreground">
-                1 ETH = $1,845.32
+              <span>1 A = {price} B</span>
+            </div>
+
+            {/* Reserves */}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Reserve A</span>
+              <span className="font-mono">{formatReserve(reserveA)}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Reserve B</span>
+              <span className="font-mono">{formatReserve(reserveB)}</span>
+            </div>
+
+            {/* LP */}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">LP Supply</span>
+              <span className="font-mono">{formatReserve(lpSupply)}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">LP Mint</span>
+              <span className="font-mono text-xs">
+                {shortAddr(pool.account.lpTokenMint)}
               </span>
             </div>
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Slippage</span>
-              <span className="font-medium text-foreground">0.5%</span>
+
+            {/* Pool */}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Pool</span>
+              <span className="font-mono text-xs">
+                {shortAddr(pool.publicKey)}
+              </span>
             </div>
           </div>
 
-          {/* Action Button */}
-          <Button className="w-full bg-primary py-6 text-lg font-semibold text-primary-foreground hover:bg-primary/90">
-            Swap
-          </Button>
+          {/* ACTION */}
+          <Button className="w-full text-lg py-6">Swap</Button>
         </CardContent>
       </Card>
     </div>
