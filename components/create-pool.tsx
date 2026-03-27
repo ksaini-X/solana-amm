@@ -3,62 +3,33 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
+import { LoaderCircle, Zap } from "lucide-react";
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import useProgram from "@/hooks/useProgram";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { RawPool } from "@/app/(main)/pools/page";
-type TokenInfo = {
-  tokenAccountAddress: string;
-  tokenMintAddress: string;
-  amount: number;
-  decimals: number;
-};
+import { RawPool, TokenInfo } from "@/lib/types";
 
 export function CreatePool({
   loading,
   setLoading,
   pools,
+  tokens,
 }: {
   loading: boolean;
   pools: RawPool[];
   setLoading: (loading: boolean) => void;
+  tokens: TokenInfo[];
 }) {
   const [mintA, setMintA] = useState("");
   const [mintB, setMintB] = useState("");
   const [amountA, setAmountA] = useState("");
   const [amountB, setAmountB] = useState("");
-  const [tokens, setTokens] = useState<TokenInfo[]>([]);
 
   const wallet = useWallet();
   const { connection } = useConnection();
   const program = useProgram();
-
-  useEffect(() => {
-    async function getAccountData() {
-      if (!wallet.publicKey) return;
-
-      const data = await connection.getParsedTokenAccountsByOwner(
-        wallet.publicKey,
-        { programId: TOKEN_PROGRAM_ID },
-      );
-      console.log(data);
-      const formatted: TokenInfo[] = data.value
-        .map((acc) => ({
-          tokenAccountAddress: acc.pubkey.toString(),
-          tokenMintAddress: acc.account.data.parsed.info.mint,
-          amount: acc.account.data.parsed.info.tokenAmount.uiAmount,
-          decimals: acc.account.data.parsed.info.tokenAmount.decimals,
-        }))
-        .filter((t) => t.amount > 0);
-
-      setTokens(formatted);
-    }
-
-    getAccountData();
-  }, [wallet, connection]);
 
   const createPool = async () => {
     if (!program) return;
@@ -96,9 +67,6 @@ export function CreatePool({
     const tokenAVault = Keypair.generate();
     const tokenBVault = Keypair.generate();
     const lpMint = Keypair.generate();
-    console.log("tokenAVault" + tokenAVault.publicKey.toString());
-    console.log("tokenBVault" + tokenBVault.publicKey.toString());
-    console.log("lpMint" + lpMint.publicKey.toString());
 
     try {
       setLoading(true);
@@ -212,10 +180,14 @@ export function CreatePool({
 
           <Button
             onClick={createPool}
-            disabled={!mintA || !mintB || !amountA || !amountB}
+            disabled={!mintA || !mintB || !amountA || !amountB || loading}
             className="w-full py-6 text-lg"
           >
-            Create Pool
+            {loading ? (
+              <LoaderCircle className="animate-spin" />
+            ) : (
+              "Create Pool"
+            )}
           </Button>
         </CardContent>
       </Card>

@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
-import { RawPool } from "@/app/(main)/pools/page";
-import { shortAddr } from "./pools-table";
 import useProgram from "@/hooks/useProgram";
 import * as anchor from "@coral-xyz/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -16,7 +14,8 @@ import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
+import { RawPool } from "@/lib/types";
+import { shortAddr } from "@/lib/helper";
 
 export function DepositModal({
   pool,
@@ -42,7 +41,6 @@ export function DepositModal({
 
   const ratio = reserveA > 0 ? reserveB / reserveA : 0;
 
-  // enforce ratio (A input drives B)
   useEffect(() => {
     if (!amountA || Number(amountA) <= 0) {
       setAmountB("");
@@ -94,7 +92,6 @@ export function DepositModal({
         tokenBVault: new PublicKey(pool.account.tokenBVault),
         lpMint: new PublicKey(pool.account.lpTokenMint),
         pool: new PublicKey(pool.publicKey),
-        // Programs & Sysvars
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
@@ -132,15 +129,19 @@ export function DepositModal({
               />
 
               <div className="px-3 flex items-center rounded-lg bg-secondary text-sm font-medium gap-1">
-                <span>A</span>
                 <span className="text-muted-foreground text-xs">
                   {shortAddr(pool.account.tokenAMint, 4)}
+                </span>
+                <span
+                  className="h-9 w-9 flex items-center justify-center rounded-full 
+              bg-primary/20 text-xs font-bold ring-2 ring-card"
+                >
+                  A
                 </span>
               </div>
             </div>
           </div>
 
-          {/* TOKEN B (AUTO) */}
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">Token B (auto)</p>
 
@@ -153,16 +154,21 @@ export function DepositModal({
               />
 
               <div className="px-3 flex items-center rounded-lg bg-secondary text-sm font-medium gap-1">
-                <span>B</span>
                 <span className="text-muted-foreground text-xs">
                   {shortAddr(pool.account.tokenBMint, 4)}
+                </span>
+                <span
+                  className="h-9 w-9 flex items-center justify-center rounded-full 
+              bg-primary/20 text-xs font-bold ring-2 ring-card"
+                >
+                  B
                 </span>
               </div>
             </div>
           </div>
 
           {/* INFO */}
-          <div className="rounded-xl bg-secondary/50 p-3 text-sm space-y-3">
+          <div className="rounded-xl bg-secondary/50 p-3 text-sm space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Ratio</span>
               <span>1 A = {ratio.toFixed(6)} B</span>
@@ -182,15 +188,16 @@ export function DepositModal({
               <span className="text-muted-foreground">LP Supply</span>
               <span className="font-mono">{lpSupply}</span>
             </div>
+            <div className="py-2 text-emerald-600 border-y border-neutral-600 my-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Your Share</span>
+                <span className="font-mono">{(share * 100).toFixed(4)}%</span>
+              </div>
 
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Your Share</span>
-              <span className="font-mono">{(share * 100).toFixed(4)}%</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">LP Tokens</span>
-              <span className="font-mono">{estimatedLp.toFixed(6)}</span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">LP Tokens</span>
+                <span className="font-mono">{estimatedLp.toFixed(6)}</span>
+              </div>
             </div>
 
             <div className="flex justify-between">

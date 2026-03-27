@@ -3,21 +3,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowRightLeft } from "lucide-react";
-import { RawPool } from "@/app/(main)/pools/page";
 import { useState } from "react";
 import { SwapModal } from "./swap-interface";
 import { DepositModal } from "./deposit-interface";
-
-export const hexToNum = (hex: string) => parseInt(hex, 16);
-
-export const shortAddr = (addr: string, offset?: number) =>
-  `${addr.slice(0, offset || 10)}...${addr.slice(-1 * (offset || 10))}`;
+import { RawPool, TokenInfo } from "@/lib/types";
+import { shortAddr } from "@/lib/helper";
 
 function PoolCard({
   pool,
   setShowSwapModal,
   setShowDepositModal,
+  hasProvidedLiquidity,
 }: {
+  hasProvidedLiquidity: TokenInfo | undefined;
   pool: RawPool;
   setShowSwapModal: ({
     show,
@@ -78,7 +76,6 @@ function PoolCard({
             </span>
           </div>
         </div>
-
         <div className="flex justify-between border-b border-neutral-800">
           <div className="rounded-xl bg-secondary/40 px-3 py-3">
             <p className="text-sm text-muted-foreground mb-1">Token A</p>
@@ -90,7 +87,6 @@ function PoolCard({
             <p className="font-mono text-2xl font-extrabold">{reserveB}</p>
           </div>
         </div>
-
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] text-muted-foreground mb-1">LP Supply</p>
@@ -103,7 +99,7 @@ function PoolCard({
             <Button
               size="sm"
               variant="outline"
-              className="border-border gap-1.5 hover:bg-primary/10"
+              className="gap-1.5 bg-primary hover:bg-primary/90 text-black hover:cursor-pointer"
               onClick={() =>
                 setShowDepositModal({
                   poolId: pool.publicKey,
@@ -117,7 +113,7 @@ function PoolCard({
 
             <Button
               size="sm"
-              className="gap-1.5 bg-primary hover:bg-primary/90"
+              className="gap-1.5 bg-primary hover:bg-primary/90 hover:cursor-pointer"
               onClick={() =>
                 setShowSwapModal({
                   poolId: pool.publicKey,
@@ -130,8 +126,7 @@ function PoolCard({
             </Button>
           </div>
         </div>
-
-        <div className="text-xs text-muted-foreground border-t pt-3 space-y-2">
+        <div className="text-[11px] text-muted-foreground border-t pt-3 space-y-1">
           <div className="flex justify-between">
             <span>Token A</span>
             <span className="font-mono">
@@ -158,6 +153,27 @@ function PoolCard({
             <span className="font-mono">{shortAddr(pool.publicKey)}</span>
           </div>
         </div>
+        {hasProvidedLiquidity && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-center justify-between">
+            <div className="flex flex-col">
+              <p className="text-xs text-amber-400 font-medium">
+                Liquidity Position
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                You have provided liquidity in this pool
+              </p>
+            </div>
+
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground">
+                Your LP Tokens
+              </p>
+              <p className="font-mono text-sm font-semibold text-amber-300">
+                {hasProvidedLiquidity.amount}
+              </p>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -166,11 +182,13 @@ function PoolCard({
 export function PoolsTable({
   loading,
   setLoading,
+  tokens,
   pools,
 }: {
   loading: boolean;
   setLoading: (v: boolean) => void;
   pools: RawPool[];
+  tokens: TokenInfo[];
 }) {
   const [showSwapModal, setShowSwapModal] = useState<{
     show: boolean;
@@ -199,6 +217,10 @@ export function PoolsTable({
                   pool={pool}
                   setShowSwapModal={setShowSwapModal}
                   setShowDepositModal={setShowDepositModal}
+                  hasProvidedLiquidity={tokens.find(
+                    (token) =>
+                      token.tokenMintAddress === pool.account.lpTokenMint,
+                  )}
                 />
               ))}
           </div>

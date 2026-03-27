@@ -2,69 +2,64 @@
 
 import { PoolsTable } from "@/components/pools-table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CreatePool } from "@/components/create-pool";
 import useProgram from "@/hooks/useProgram";
-import { getMint } from "@solana/spl-token";
-import { useConnection } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { Poller_One } from "next/font/google";
-export interface RawPool {
-  publicKey: string;
-  account: {
-    tokenAReserves: number;
-    tokenBReserves: number;
-    tokenAMint: string;
-    tokenBMint: string;
-    lpTokenMint: string;
-    lpTokenSupply: number;
-    tokenAMintDecimals: number;
-    tokenBMintDecimals: number;
-    lpTokenMintDecimals: number;
-    tokenAVault: string;
-    tokenBVault: string;
-  };
-}
-export async function normalisePool(p: any, connection: Connection) {
-  return {
-    publicKey: p.publicKey.toString(),
-    account: {
-      tokenAReserves: p.account.tokenAReserves.toNumber(),
-      tokenBReserves: p.account.tokenBReserves.toNumber(),
-      tokenAVault: p.account.tokenAVault.toString(),
-      tokenBVault: p.account.tokenBVault.toString(),
-      tokenAMint: p.account.tokenAMint.toString(),
-      tokenBMint: p.account.tokenBMint.toString(),
-      lpTokenMint: p.account.lpTokenMint.toString(),
-      lpTokenSupply: p.account.lpTokenSupply.toNumber(),
-      tokenAMintDecimals: (await getMint(connection, p.account.tokenAMint))
-        .decimals,
-      tokenBMintDecimals: (await getMint(connection, p.account.tokenBMint))
-        .decimals,
-      lpTokenMintDecimals: (await getMint(connection, p.account.lpTokenMint))
-        .decimals,
-    },
-  };
-}
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { RawPool, TokenInfo } from "@/lib/types";
+import { normalisePool } from "@/lib/helper";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 export default function PoolsPage() {
   const { connection } = useConnection();
+  const program = useProgram();
+  const wallet = useWallet();
 
   const [createPool, setCreatePool] = useState(false);
   const [loading, setLoading] = useState(false);
-  const program = useProgram();
 
+  const [tokens, setTokens] = useState<TokenInfo[]>([]);
   const [pools, setPools] = useState<RawPool[]>([]);
+
+  useEffect(() => {
+    async function getAccountData() {
+      if (!wallet.publicKey) return;
+      setLoading(true);
+      try {
+        const data = await connection.getParsedTokenAccountsByOwner(
+          wallet.publicKey,
+          { programId: TOKEN_PROGRAM_ID },
+        );
+        console.log(data);
+        const formatted: TokenInfo[] = data.value
+          .map((acc) => ({
+            tokenAccountAddress: acc.pubkey.toString(),
+            tokenMintAddress: acc.account.data.parsed.info.mint,
+            amount: acc.account.data.parsed.info.tokenAmount.uiAmount,
+            decimals: acc.account.data.parsed.info.tokenAmount.decimals,
+          }))
+          .filter((t) => t.amount > 0);
+
+        setTokens(formatted);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    getAccountData();
+  }, [wallet, connection]);
+
   useEffect(() => {
     async function fetchPools() {
       if (!program) return;
+      setLoading(true);
       try {
+        //@ts-ignore
         const allPools = await program.account.pool.all();
-        console.log(
-          allPools.map((t) => console.log(t.account.tokenAVault.toBase58())),
-        );
-        console.log(allPools[0].account.tokenAReserves.toNumber());
+
         const normalizedPromises = allPools.map((p: any) =>
           normalisePool(p, connection),
         );
@@ -72,11 +67,13 @@ export default function PoolsPage() {
         setPools(normalized);
       } catch (e) {
         console.error(e);
+      } finally {
+        setLoading(false);
       }
     }
     fetchPools();
   }, [program]);
-  console.log(pools);
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -100,9 +97,19 @@ export default function PoolsPage() {
         </Button>
       </div>
       {createPool ? (
-        <CreatePool loading={loading} setLoading={setLoading} pools={pools} />
+        <CreatePool
+          loading={loading}
+          setLoading={setLoading}
+          pools={pools}
+          tokens={tokens}
+        />
       ) : (
-        <PoolsTable loading={loading} setLoading={setLoading} pools={pools} />
+        <PoolsTable
+          loading={loading}
+          setLoading={setLoading}
+          pools={pools}
+          tokens={tokens}
+        />
       )}
     </main>
   );

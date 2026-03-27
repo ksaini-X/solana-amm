@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowDownUp, X } from "lucide-react";
-import { RawPool } from "@/app/(main)/pools/page";
-import { shortAddr } from "./pools-table";
 import useProgram from "@/hooks/useProgram";
 import * as anchor from "@coral-xyz/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { shortAddr } from "@/lib/helper";
+import { RawPool } from "@/lib/types";
 export function SwapModal({
   pool,
   onClose,
