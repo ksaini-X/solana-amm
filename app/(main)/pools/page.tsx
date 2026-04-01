@@ -59,7 +59,6 @@ export default function PoolsPage() {
       try {
         //@ts-ignore
         const allPools = await program.account.pool.all();
-
         const normalizedPromises = allPools.map((p: any) =>
           normalisePool(p, connection),
         );
