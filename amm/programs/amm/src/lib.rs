@@ -32,4 +32,7 @@ pub mod amm {
     pub fn swap(ctx: Context<Swap>, in_amount: u64, swap_side: SwapSide) -> Result<()> {
         instructions::swap::handler(ctx, in_amount, swap_side)
     }
+    pub fn withdraw(ctx: Context<Withdraw>, lp_amount: u64) -> Result<()> {
+        instructions::withdraw::handler(ctx, lp_amount)
+    }
 }
